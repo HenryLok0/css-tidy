@@ -52,7 +52,6 @@ css-tidy style.css --group
 
 ## Command Line Options
 
-```
 | Option                  | Description |
 |------------------------|-------------|
 | **[Output Control]**    |             |
@@ -71,7 +70,6 @@ css-tidy style.css --group
 | `-v, --verbose`         | Enable verbose output |
 | `--version`             | Show version and exit |
 | `--help`                | Show this message and exit |
-```
 
 ### Python API Usage
 

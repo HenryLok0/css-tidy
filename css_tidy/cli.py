@@ -165,7 +165,7 @@ def process_file(input_file: str,
 @click.option('--duplicate-report', type=click.Path(), help='Generate JSON report of duplicate rules')
 @click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
 @click.option('--validate-only', is_flag=True, help='Only validate CSS, do not format')
-@click.version_option(version="0.1.3", prog_name='css-tidy')
+@click.version_option(version="0.1.4", prog_name='css-tidy')
 def main(input_file: str, 
          output: Optional[str], 
          indent: int, 
