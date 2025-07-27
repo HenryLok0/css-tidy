@@ -6,7 +6,8 @@ This module contains the main classes for formatting, minifying, and validating 
 
 import re
 import os
-from typing import List, Dict, Optional, Tuple
+import json
+from typing import List, Dict, Optional, Tuple, Set
 from dataclasses import dataclass
 
 
@@ -75,6 +76,281 @@ class CSSRule:
         return ""
 
 
+@dataclass
+class DuplicateRule:
+    """Represents a duplicate CSS rule."""
+    selector: str
+    properties: List[Tuple[str, str]]
+    line_numbers: List[int]
+    is_removable: bool = True
+
+
+class CSSDuplicateDetector:
+    """Detects and manages duplicate CSS rules."""
+    
+    def __init__(self):
+        """Initialize the duplicate detector."""
+        self.duplicates: List[DuplicateRule] = []
+    
+    def detect_duplicates(self, css_code: str) -> List[DuplicateRule]:
+        """
+        Detect duplicate CSS rules in the code.
+        
+        Args:
+            css_code: The CSS code to analyze
+            
+        Returns:
+            List of duplicate rules found
+        """
+        # Parse CSS into rules
+        rules = self._parse_css_rules(css_code)
+        
+        # Group rules by their normalized content
+        rule_groups: Dict[str, List[Tuple[str, List[Tuple[str, str]], int]]] = {}
+        
+        for rule in rules:
+            selector, properties, line_number = rule
+            # Create a normalized key for comparison
+            normalized_key = self._normalize_rule(selector, properties)
+            
+            if normalized_key not in rule_groups:
+                rule_groups[normalized_key] = []
+            rule_groups[normalized_key].append((selector, properties, line_number))
+        
+        # Find duplicates
+        self.duplicates = []
+        for normalized_key, rule_list in rule_groups.items():
+            if len(rule_list) > 1:
+                # This is a duplicate
+                selector, properties, _ = rule_list[0]
+                line_numbers = [rule[2] for rule in rule_list]
+                
+                # Check if this duplicate is removable (all instances are identical)
+                is_removable = self._is_duplicate_removable(rule_list)
+                
+                duplicate_rule = DuplicateRule(
+                    selector=selector,
+                    properties=properties,
+                    line_numbers=line_numbers,
+                    is_removable=is_removable
+                )
+                self.duplicates.append(duplicate_rule)
+        
+        return self.duplicates
+    
+    def _parse_css_rules(self, css_code: str) -> List[Tuple[str, List[Tuple[str, str]], int]]:
+        """Parse CSS code into individual rules with line numbers."""
+        rules = []
+        lines = css_code.split('\n')
+        
+        current_selector = ""
+        current_properties = []
+        current_line_start = 0
+        brace_level = 0
+        in_rule = False
+        
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            
+            if not stripped or stripped.startswith('/*'):
+                continue
+            
+            # Check for selector (line ending with {)
+            if '{' in stripped and not in_rule:
+                current_selector = stripped.split('{')[0].strip()
+                current_properties = []
+                current_line_start = i
+                in_rule = True
+                brace_level = stripped.count('{')
+                continue
+            
+            if in_rule:
+                brace_level += stripped.count('{')
+                brace_level -= stripped.count('}')
+                
+                # Check for property declarations
+                if ':' in stripped and ';' in stripped:
+                    colon_pos = stripped.find(':')
+                    semicolon_pos = stripped.find(';')
+                    if colon_pos < semicolon_pos:
+                        prop_name = stripped[:colon_pos].strip()
+                        prop_value = stripped[colon_pos+1:semicolon_pos].strip()
+                        current_properties.append((prop_name, prop_value))
+                
+                # End of rule
+                if brace_level == 0:
+                    if current_selector and current_properties:
+                        rules.append((current_selector, current_properties, current_line_start))
+                    current_selector = ""
+                    current_properties = []
+                    in_rule = False
+        
+        return rules
+    
+    def _normalize_rule(self, selector: str, properties: List[Tuple[str, str]]) -> str:
+        """Create a normalized string for rule comparison."""
+        # Normalize selector (remove extra spaces)
+        normalized_selector = re.sub(r'\s+', ' ', selector.strip())
+        
+        # Sort properties for consistent comparison
+        sorted_properties = sorted(properties, key=lambda x: x[0])
+        
+        # Create normalized string
+        props_str = ';'.join([f"{name}:{value}" for name, value in sorted_properties])
+        return f"{normalized_selector}{{{props_str}}}"
+    
+    def _is_duplicate_removable(self, rule_list: List[Tuple[str, List[Tuple[str, str]], int]]) -> bool:
+        """Check if a duplicate rule can be safely removed."""
+        if len(rule_list) < 2:
+            return False
+        
+        # All instances must be identical to be removable
+        first_rule = rule_list[0]
+        for rule in rule_list[1:]:
+            if rule[0] != first_rule[0] or rule[1] != first_rule[1]:
+                return False
+        
+        return True
+    
+    def remove_duplicates(self, css_code: str) -> str:
+        """
+        Remove duplicate CSS rules from the code.
+        
+        Args:
+            css_code: The CSS code to clean
+            
+        Returns:
+            CSS code with duplicates removed
+        """
+        if not self.duplicates:
+            self.detect_duplicates(css_code)
+        
+        # Parse CSS into rules with line ranges
+        rules_with_ranges = self._parse_css_with_ranges(css_code)
+        
+        # Find rules to remove
+        rules_to_remove = set()
+        for duplicate in self.duplicates:
+            if duplicate.is_removable:
+                # Keep the first occurrence, mark the rest for removal
+                for line_num in duplicate.line_numbers[1:]:
+                    # Find the rule that starts at this line
+                    for rule_info in rules_with_ranges:
+                        if rule_info['start_line'] == line_num:
+                            rules_to_remove.add(rule_info['rule_id'])
+                            break
+        
+        # Rebuild CSS without removed rules
+        lines = css_code.split('\n')
+        lines_to_keep = set(range(len(lines)))
+        
+        for rule_info in rules_with_ranges:
+            if rule_info['rule_id'] in rules_to_remove:
+                # Remove all lines in this rule
+                for i in range(rule_info['start_line'] - 1, rule_info['end_line']):
+                    if i in lines_to_keep:
+                        lines_to_keep.remove(i)
+        
+        # Rebuild CSS
+        cleaned_lines = [lines[i] for i in range(len(lines)) if i in lines_to_keep]
+        
+        return '\n'.join(cleaned_lines)
+    
+    def _parse_css_with_ranges(self, css_code: str) -> List[Dict]:
+        """Parse CSS code into rules with line ranges."""
+        rules = []
+        lines = css_code.split('\n')
+        
+        current_selector = ""
+        current_properties = []
+        current_line_start = 0
+        brace_level = 0
+        in_rule = False
+        rule_id = 0
+        
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            
+            if not stripped or stripped.startswith('/*'):
+                continue
+            
+            # Check for selector (line ending with {)
+            if '{' in stripped and not in_rule:
+                current_selector = stripped.split('{')[0].strip()
+                current_properties = []
+                current_line_start = i
+                in_rule = True
+                brace_level = stripped.count('{')
+                continue
+            
+            if in_rule:
+                brace_level += stripped.count('{')
+                brace_level -= stripped.count('}')
+                
+                # Check for property declarations
+                if ':' in stripped and ';' in stripped:
+                    colon_pos = stripped.find(':')
+                    semicolon_pos = stripped.find(';')
+                    if colon_pos < semicolon_pos:
+                        prop_name = stripped[:colon_pos].strip()
+                        prop_value = stripped[colon_pos+1:semicolon_pos].strip()
+                        current_properties.append((prop_name, prop_value))
+                
+                # End of rule
+                if brace_level == 0:
+                    if current_selector and current_properties:
+                        rules.append({
+                            'rule_id': rule_id,
+                            'selector': current_selector,
+                            'properties': current_properties,
+                            'start_line': current_line_start,
+                            'end_line': i
+                        })
+                        rule_id += 1
+                    current_selector = ""
+                    current_properties = []
+                    in_rule = False
+        
+        return rules
+    
+    def generate_report(self, output_path: Optional[str] = None) -> str:
+        """
+        Generate a JSON report of duplicate rules.
+        
+        Args:
+            output_path: Optional path to save the report
+            
+        Returns:
+            JSON string of the report
+        """
+        report = {
+            "summary": {
+                "total_duplicates": len(self.duplicates),
+                "removable_duplicates": len([d for d in self.duplicates if d.is_removable]),
+                "non_removable_duplicates": len([d for d in self.duplicates if not d.is_removable])
+            },
+            "duplicates": []
+        }
+        
+        for duplicate in self.duplicates:
+            duplicate_info = {
+                "selector": duplicate.selector,
+                "properties": [{"name": name, "value": value} for name, value in duplicate.properties],
+                "line_numbers": duplicate.line_numbers,
+                "is_removable": duplicate.is_removable,
+                "occurrences": len(duplicate.line_numbers)
+            }
+            report["duplicates"].append(duplicate_info)
+        
+        json_report = json.dumps(report, indent=2)
+        
+        if output_path:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(json_report)
+        
+        return json_report
+
+
 class CSSFormatter:
     """Formats CSS code to make it more readable."""
     
@@ -83,7 +359,8 @@ class CSSFormatter:
                  max_line_length: int = 80,
                  sort_properties: bool = False,
                  remove_comments: bool = False,
-                 group_selectors: bool = False):
+                 group_selectors: bool = False,
+                 remove_duplicates: bool = False):
         """
         Initialize the CSS formatter.
         
@@ -93,11 +370,15 @@ class CSSFormatter:
             sort_properties: Whether to sort CSS properties
             remove_comments: Whether to remove CSS comments
             group_selectors: Whether to group selectors by prefix
+            remove_duplicates: Whether to remove duplicate CSS rules
         """
         self.indent_size = indent_size
         self.max_line_length = max_line_length
         self.sort_properties = sort_properties
         self.remove_comments = remove_comments
+        self.group_selectors = group_selectors
+        self.remove_duplicates = remove_duplicates
+        self.duplicate_detector = CSSDuplicateDetector() if remove_duplicates else None
         self.group_selectors = group_selectors
         self.indent = " " * indent_size
     
@@ -114,15 +395,21 @@ class CSSFormatter:
         if not css_code.strip():
             return ""
         
-        # Remove comments if requested
-        if self.remove_comments:
-            css_code = self._remove_comments(css_code)
+        # Remove duplicates if requested
+        if self.remove_duplicates and self.duplicate_detector:
+            css_code = self.duplicate_detector.remove_duplicates(css_code)
         
         # Use conservative formatting that preserves all content
         if self.group_selectors:
-            return self._format_grouped_conservative(css_code)
+            css_code = self._format_grouped_conservative(css_code)
         else:
-            return self._format_conservative(css_code)
+            css_code = self._format_conservative(css_code)
+        
+        # Remove comments if requested (after formatting to catch group comments)
+        if self.remove_comments:
+            css_code = self._remove_comments(css_code)
+        
+        return css_code
     
     def format_file(self, input_path: str, output_path: Optional[str] = None) -> str:
         """
@@ -166,26 +453,38 @@ class CSSFormatter:
         current_pos = 0
         brace_count = 0
         start_pos = 0
+        in_string = False
+        string_char = None
         
         for i, char in enumerate(css_code):
-            if char == '{':
-                if brace_count == 0:
-                    start_pos = i
-                brace_count += 1
-            elif char == '}':
-                brace_count -= 1
-                if brace_count == 0:
-                    # Extract the complete rule
-                    rule_text = css_code[start_pos:i+1]
-                    selector_text = css_code[current_pos:start_pos].strip()
-                    
-                    if selector_text:
-                        # Parse the rule
-                        rule = self._parse_rule_block(selector_text, rule_text)
-                        if rule:
-                            rules.append(rule)
-                    
-                    current_pos = i + 1
+            # Handle string literals to avoid counting braces inside strings
+            if char in ['"', "'"] and (i == 0 or css_code[i-1] != '\\'):
+                if not in_string:
+                    in_string = True
+                    string_char = char
+                elif string_char == char:
+                    in_string = False
+                    string_char = None
+            
+            if not in_string:
+                if char == '{':
+                    if brace_count == 0:
+                        start_pos = i
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        # Extract the complete rule
+                        rule_text = css_code[start_pos:i+1]
+                        selector_text = css_code[current_pos:start_pos].strip()
+                        
+                        if selector_text:
+                            # Parse the rule
+                            rule = self._parse_rule_block(selector_text, rule_text)
+                            if rule:
+                                rules.append(rule)
+                        
+                        current_pos = i + 1
         
         return rules
     
@@ -208,11 +507,6 @@ class CSSFormatter:
         """Parse CSS properties from text."""
         properties = []
         
-        # Handle nested rules (like media queries)
-        if '{' in properties_text:
-            # This is a nested rule, not a property list
-            return []
-        
         # Normalize line breaks and remove extra whitespace
         properties_text = re.sub(r'\s+', ' ', properties_text)
         
@@ -220,17 +514,34 @@ class CSSFormatter:
         prop_pairs = []
         current_prop = ""
         paren_count = 0
+        bracket_count = 0
+        in_string = False
+        string_char = None
         
         for char in properties_text:
-            if char == '(':
-                paren_count += 1
-            elif char == ')':
-                paren_count -= 1
-            elif char == ';' and paren_count == 0:
-                if current_prop.strip():
-                    prop_pairs.append(current_prop.strip())
-                current_prop = ""
-                continue
+            # Handle string literals
+            if char in ['"', "'"] and (len(current_prop) == 0 or current_prop[-1] != '\\'):
+                if not in_string:
+                    in_string = True
+                    string_char = char
+                elif string_char == char:
+                    in_string = False
+                    string_char = None
+            
+            if not in_string:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+                elif char == '[':
+                    bracket_count += 1
+                elif char == ']':
+                    bracket_count -= 1
+                elif char == ';' and paren_count == 0 and bracket_count == 0:
+                    if current_prop.strip():
+                        prop_pairs.append(current_prop.strip())
+                    current_prop = ""
+                    continue
             
             current_prop += char
         
@@ -287,7 +598,13 @@ class CSSFormatter:
     def _wrap_property(self, name: str, value: str) -> str:
         """Wrap long CSS properties across multiple lines."""
         # For CSS custom properties and complex values, keep them on one line
-        if name.startswith('--') or 'linear-gradient' in value or 'var(' in value:
+        complex_keywords = ['linear-gradient', 'radial-gradient', 'conic-gradient', 'var(', 'calc(', 'url(', 'hsla(', 'rgba(']
+        if name.startswith('--') or any(keyword in value for keyword in complex_keywords):
+            return f"{self.indent}{name}: {value};"
+        
+        # For properties that should not be wrapped (like box-shadow, transition, transform)
+        no_wrap_properties = ['box-shadow', 'transition', 'transform', 'background', 'border', 'margin', 'padding']
+        if name in no_wrap_properties:
             return f"{self.indent}{name}: {value};"
         
         # Simple wrapping - split on spaces or commas
@@ -412,8 +729,8 @@ class CSSFormatter:
     
     def _format_grouped_conservative(self, css_code: str) -> str:
         """Format CSS with grouping, preserving all content."""
-        # For now, just use conservative formatting without grouping
-        # to ensure no content is lost
+        # For now, use conservative formatting without grouping
+        # to ensure no content is lost, especially for @keyframes and @media
         return self._format_conservative(css_code)
 
 
@@ -613,16 +930,16 @@ class CSSValidator:
         lines = css_code.split('\n')
         brace_level = 0
         in_multiline_property = False
-        multiline_property_start = 0
         
         for i, line in enumerate(lines, 1):
-            original_line = line # Keep original line for error message
-            line = line.strip()
+            original_line = line.strip()
+            line = original_line
             
             # Update brace level
             brace_level += line.count('{')
             brace_level -= line.count('}')
             
+            # Skip empty lines, comments, and rule boundaries
             if not line or line.startswith('/*') or line.endswith('{') or line.endswith('}'):
                 continue
                 
@@ -639,7 +956,6 @@ class CSSValidator:
                 # This might be the start of a multi-line property
                 if not in_multiline_property:
                     in_multiline_property = True
-                    multiline_property_start = i
                 continue
             
             if in_multiline_property:
@@ -648,53 +964,31 @@ class CSSValidator:
                     in_multiline_property = False
                 continue
                 
-            # Skip lines that are part of multi-line properties (e.g., linear-gradient)
-            # Check for balanced parentheses to identify multi-line values
-            if '(' in line and ')' not in line: # Start of a multi-line value
+            # Skip lines that are part of multi-line values
+            if '(' in line and ')' not in line:  # Start of a multi-line value
                 continue
-            if ')' in line and '(' not in line: # End of a multi-line value
-                continue
-                
-            # Skip lines that are just property values (like "0 0 0 1px var(--orange-yellow-crayola);")
-            if re.match(r'^[0-9.\s-]+[a-zA-Z%()]+.*;', line):
+            if ')' in line and '(' not in line:  # End of a multi-line value
                 continue
                 
-            # Skip lines that are just rgba/hsla values
-            if re.match(r'^[0-9.\s-]+rgba?\(.*\);', line):
+            # Skip lines that are just property values or function calls
+            if re.match(r'^[0-9.\s-]+[a-zA-Z%()]+.*;', line) or \
+               re.match(r'^[a-zA-Z-]+\s*\(', line) or \
+               re.match(r'^[a-zA-Z-]+\s*[0-9.%]+', line) or \
+               line.endswith('(') or line.startswith(')'):
                 continue
                 
-            # Skip lines that are just box-shadow values
-            if re.match(r'^[0-9.\s-]+px.*;', line):
-                continue
-                
-            # Skip lines that are just values (like box-shadow values)
-            if re.match(r'^[0-9.-]+\s*[a-zA-Z%]+', line):
-                continue
-                
-            # Skip lines that are part of function calls
-            if re.match(r'^[a-zA-Z-]+\s*\(', line):
-                continue
-                
-            # Skip lines that are part of multi-line values (like hsl values)
-            if re.match(r'^[a-zA-Z-]+\s*[0-9.%]+', line):
-                continue
-                
-            # Skip lines that are part of multi-line properties
-            if line.endswith('(') or line.startswith(')'):
-                continue
-                
-            # If it's a property declaration, it must have a colon
+            # Check for missing colons in property declarations
             if ';' in line and ':' not in line and not line.startswith('--'):
                 # Make sure it's not a closing parenthesis or other syntax
                 if not line.strip().startswith(')') and not line.strip().endswith('('):
                     # Additional check for multi-line property values
                     if not re.match(r'^[a-zA-Z-]+\s+[0-9.-]', line):
-                        self.errors.append(f"Missing colon in property on line {i}: {original_line.strip()}")
-            elif ':' not in line and brace_level > 0: # If inside a rule and no colon, it's likely an error
+                        self.errors.append(f"Missing colon in property on line {i}: {original_line}")
+            elif ':' not in line and brace_level > 0:  # If inside a rule and no colon, it's likely an error
                 # Further check to ensure it's not a selector or at-rule
                 if not re.match(r'^[a-zA-Z0-9_-]+(\s*[,>+~:]\s*[a-zA-Z0-9_-]+)*\s*\{?$', line) and \
                    not line.startswith('@'):
-                    self.errors.append(f"Missing colon in property on line {i}: {original_line.strip()}")
+                    self.errors.append(f"Missing colon in property on line {i}: {original_line}")
     
     def _check_comments(self, css_code: str) -> None:
         """Check for unclosed comments."""

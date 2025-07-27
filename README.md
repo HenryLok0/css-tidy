@@ -25,7 +25,7 @@ pip install css-tidy
 
 ## Usage
 ```
-css-tidy [css-file-name] [options]
+css-tidy [css-file-path] [options]
 ```
 
 ### Command Line Usage
@@ -64,6 +64,8 @@ css-tidy style.css --group
 | **[Content Processing]** |             |
 | `-c, --remove-comments` | Remove CSS comments |
 | `-g, --group`           | Group CSS selectors by prefix |
+| `-d, --remove-duplicates` | Remove duplicate CSS rules |
+| `--duplicate-report`    | Generate JSON report of duplicate rules |
 | **[Validation & Info]** |             |
 | `--validate-only`       | Only validate CSS, do not format |
 | `-v, --verbose`         | Enable verbose output |

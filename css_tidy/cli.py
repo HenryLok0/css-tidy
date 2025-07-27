@@ -105,11 +105,30 @@ def process_file(input_file: str,
         with open(input_file, 'r', encoding='utf-8') as f:
             css_code = f.read()
         
+        # Count original lines and size
+        original_lines = len(css_code.split('\n'))
+        original_size = len(css_code.encode('utf-8'))
+        
         # Process CSS
         if should_minify:
             processed_css = minifier.minify(css_code)
         else:
             processed_css = formatter.format(css_code)
+        
+        # Calculate final lines and size
+        final_lines = len(processed_css.split('\n'))
+        final_size = len(processed_css.encode('utf-8'))
+        
+        # Show statistics if duplicates were removed
+        if formatter.remove_duplicates:
+            lines_removed = original_lines - final_lines
+            size_removed = original_size - final_size
+            
+            line_reduction_percent = (lines_removed / original_lines) * 100 if original_lines > 0 else 0
+            size_reduction_percent = (size_removed / original_size) * 100 if original_size > 0 else 0
+            
+            print_info(f"Lines: {original_lines:,} → {final_lines:,} (saved {lines_removed:,} lines, {line_reduction_percent:.1f}%)")
+            print_info(f"Size: {original_size:,} → {final_size:,} bytes (saved {size_removed:,} bytes, {size_reduction_percent:.1f}%)")
         
         # Determine output file
         if output_file is None:
@@ -142,9 +161,11 @@ def process_file(input_file: str,
 @click.option('-s', '--sort', is_flag=True, help='Sort CSS properties')
 @click.option('-c', '--remove-comments', is_flag=True, help='Remove CSS comments')
 @click.option('-g', '--group', is_flag=True, help='Group CSS selectors by prefix')
+@click.option('-d', '--remove-duplicates', is_flag=True, help='Remove duplicate CSS rules')
+@click.option('--duplicate-report', type=click.Path(), help='Generate JSON report of duplicate rules')
 @click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
 @click.option('--validate-only', is_flag=True, help='Only validate CSS, do not format')
-@click.version_option(version="0.1.2", prog_name='css-tidy')
+@click.version_option(version="0.1.3", prog_name='css-tidy')
 def main(input_file: str, 
          output: Optional[str], 
          indent: int, 
@@ -152,6 +173,8 @@ def main(input_file: str,
          sort: bool, 
          remove_comments: bool, 
          group: bool,
+         remove_duplicates: bool,
+         duplicate_report: Optional[str],
          verbose: bool,
          validate_only: bool) -> None:
     """
@@ -175,7 +198,8 @@ def main(input_file: str,
             indent_size=indent,
             sort_properties=sort,
             remove_comments=remove_comments,
-            group_selectors=group
+            group_selectors=group,
+            remove_duplicates=remove_duplicates
         )
         
         minifier = CSSMinifier(
@@ -183,6 +207,37 @@ def main(input_file: str,
         )
         
         validator = CSSValidator()
+        
+        # Handle duplicate detection and reporting
+        if duplicate_report or remove_duplicates:
+            print_info("Starting duplicate detection...")
+            from .tidy import CSSDuplicateDetector
+            duplicate_detector = CSSDuplicateDetector()
+            
+            for css_file in css_files:
+                with open(css_file, 'r', encoding='utf-8') as f:
+                    css_code = f.read()
+                
+                # Count original lines and file size
+                original_lines = len(css_code.split('\n'))
+                original_size = len(css_code.encode('utf-8'))
+                
+                duplicates = duplicate_detector.detect_duplicates(css_code)
+                
+                if duplicates:
+                    if verbose:
+                        print_info(f"Found {len(duplicates)} duplicate rule(s) in {css_file}")
+                    
+                    if duplicate_report:
+                        report_path = duplicate_report if len(css_files) == 1 else f"{duplicate_report}_{Path(css_file).stem}.json"
+                        duplicate_detector.generate_report(report_path)
+                        print_success(f"Duplicate report saved to: {report_path}")
+                    
+                    # Show duplicate summary
+                    removable_count = len([d for d in duplicates if d.is_removable])
+                    print_info(f"Duplicates found: {len(duplicates)} total, {removable_count} removable")
+                else:
+                    print_info("No duplicates found")
         
         # Process files
         success_count = 0

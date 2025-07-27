@@ -1,0 +1,520 @@
+{
+  "summary": {
+    "total_duplicates": 14,
+    "removable_duplicates": 14,
+    "non_removable_duplicates": 0
+  },
+  "duplicates": [
+    {
+      "selector": "@media (min-width: 768px)",
+      "properties": [
+        {
+          "name": "grid-template-columns",
+          "value": "repeat(2, 1fr)"
+        },
+        {
+          "name": "gap",
+          "value": "25px"
+        }
+      ],
+      "line_numbers": [
+        660,
+        1735
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (min-width: 1200px)",
+      "properties": [
+        {
+          "name": "grid-template-columns",
+          "value": "repeat(3, 1fr)"
+        },
+        {
+          "name": "gap",
+          "value": "30px"
+        }
+      ],
+      "line_numbers": [
+        667,
+        1742
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (min-width: 1200px)",
+      "properties": [
+        {
+          "name": "width",
+          "value": "20px"
+        },
+        {
+          "name": "background",
+          "value": "var(--smoky-black)"
+        },
+        {
+          "name": "border",
+          "value": "5px solid var(--smoky-black)"
+        },
+        {
+          "name": "background",
+          "value": "hsla(0, 0%, 100%, 0.1)"
+        },
+        {
+          "name": "border-radius",
+          "value": "20px"
+        },
+        {
+          "name": "background",
+          "value": "hsla(0, 0%, 100%, 0.15)"
+        },
+        {
+          "name": "height",
+          "value": "60px"
+        },
+        {
+          "name": "width",
+          "value": "100%"
+        },
+        {
+          "name": "max-width",
+          "value": "1200px"
+        },
+        {
+          "name": "margin",
+          "value": "0 auto"
+        },
+        {
+          "name": "max-width",
+          "value": "1200px"
+        },
+        {
+          "name": "margin-inline",
+          "value": "auto"
+        },
+        {
+          "name": "display",
+          "value": "flex"
+        },
+        {
+          "name": "justify-content",
+          "value": "center"
+        },
+        {
+          "name": "align-items",
+          "value": "stretch"
+        },
+        {
+          "name": "gap",
+          "value": "25px"
+        },
+        {
+          "name": "min-height",
+          "value": "100vh"
+        },
+        {
+          "name": "min-width",
+          "value": "75%"
+        },
+        {
+          "name": "width",
+          "value": "75%"
+        },
+        {
+          "name": "margin",
+          "value": "0"
+        },
+        {
+          "name": "position",
+          "value": "sticky"
+        },
+        {
+          "name": "top",
+          "value": "60px"
+        },
+        {
+          "name": "max-height",
+          "value": "max-content"
+        },
+        {
+          "name": "height",
+          "value": "auto"
+        },
+        {
+          "name": "margin-bottom",
+          "value": "0"
+        },
+        {
+          "name": "padding-top",
+          "value": "60px"
+        },
+        {
+          "name": "z-index",
+          "value": "1"
+        },
+        {
+          "name": "align-self",
+          "value": "flex-start"
+        },
+        {
+          "name": "flex-direction",
+          "value": "column"
+        },
+        {
+          "name": "width",
+          "value": "150px"
+        },
+        {
+          "name": "white-space",
+          "value": "nowrap"
+        },
+        {
+          "name": "text-align",
+          "value": "center"
+        },
+        {
+          "name": "margin",
+          "value": "auto"
+        },
+        {
+          "name": "display",
+          "value": "none"
+        },
+        {
+          "name": "opacity",
+          "value": "1"
+        },
+        {
+          "name": "visibility",
+          "value": "visible"
+        },
+        {
+          "name": "grid-template-columns",
+          "value": "1fr"
+        },
+        {
+          "name": "white-space",
+          "value": "nowrap"
+        },
+        {
+          "name": "overflow",
+          "value": "hidden"
+        },
+        {
+          "name": "text-overflow",
+          "value": "ellipsis"
+        },
+        {
+          "name": "--fs-7",
+          "value": "14px"
+        },
+        {
+          "name": "font-weight",
+          "value": "var(--fw-300)"
+        },
+        {
+          "name": "color",
+          "value": "var(--light-gray-70)"
+        },
+        {
+          "name": "font-size",
+          "value": "0.95em"
+        },
+        {
+          "name": "margin-left",
+          "value": "6px"
+        },
+        {
+          "name": "font-weight",
+          "value": "400"
+        },
+        {
+          "name": "color",
+          "value": "var(--orange-yellow-crayola)"
+        },
+        {
+          "name": "letter-spacing",
+          "value": "1px"
+        },
+        {
+          "name": "margin",
+          "value": "15px 0"
+        },
+        {
+          "name": "opacity",
+          "value": "0"
+        },
+        {
+          "name": "justify-content",
+          "value": "center"
+        },
+        {
+          "name": "max-width",
+          "value": "700px"
+        }
+      ],
+      "line_numbers": [
+        988,
+        2455
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (max-width: 767px)",
+      "properties": [
+        {
+          "name": "min-height",
+          "value": "200px"
+        }
+      ],
+      "line_numbers": [
+        1414,
+        1766
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (min-width: 768px) and (max-width: 1199px)",
+      "properties": [
+        {
+          "name": "min-height",
+          "value": "300px"
+        }
+      ],
+      "line_numbers": [
+        1420,
+        1772
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (min-width: 1200px)",
+      "properties": [
+        {
+          "name": "min-height",
+          "value": "320px"
+        }
+      ],
+      "line_numbers": [
+        1426,
+        1778
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": ".tech-stack-section",
+      "properties": [
+        {
+          "name": "margin",
+          "value": "40px 0 0 0"
+        },
+        {
+          "name": "padding",
+          "value": "0"
+        }
+      ],
+      "line_numbers": [
+        4022,
+        4365,
+        4590
+      ],
+      "is_removable": true,
+      "occurrences": 3
+    },
+    {
+      "selector": ".tech-item:hover .tech-icon",
+      "properties": [
+        {
+          "name": "color",
+          "value": "var(--vegas-gold)"
+        }
+      ],
+      "line_numbers": [
+        4071,
+        4233,
+        4671
+      ],
+      "is_removable": true,
+      "occurrences": 3
+    },
+    {
+      "selector": ".tech-stack-status",
+      "properties": [
+        {
+          "name": "margin-top",
+          "value": "10px"
+        },
+        {
+          "name": "display",
+          "value": "flex"
+        },
+        {
+          "name": "justify-content",
+          "value": "center"
+        },
+        {
+          "name": "align-items",
+          "value": "center"
+        }
+      ],
+      "line_numbers": [
+        4113,
+        4517,
+        4693
+      ],
+      "is_removable": true,
+      "occurrences": 3
+    },
+    {
+      "selector": "@keyframes pulse",
+      "properties": [
+        {
+          "name": "opacity",
+          "value": "1"
+        },
+        {
+          "name": "opacity",
+          "value": "0.5"
+        }
+      ],
+      "line_numbers": [
+        4142,
+        4328,
+        4549,
+        4725
+      ],
+      "is_removable": true,
+      "occurrences": 4
+    },
+    {
+      "selector": ".tech-stack-grid",
+      "properties": [
+        {
+          "name": "display",
+          "value": "grid"
+        },
+        {
+          "name": "grid-template-columns",
+          "value": "repeat(auto-fit, minmax(120px, 1fr))"
+        },
+        {
+          "name": "gap",
+          "value": "18px"
+        },
+        {
+          "name": "margin-bottom",
+          "value": "14px"
+        }
+      ],
+      "line_numbers": [
+        4384,
+        4610
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": ".tech-item::before",
+      "properties": [
+        {
+          "name": "content",
+          "value": "\"\""
+        },
+        {
+          "name": "position",
+          "value": "absolute"
+        },
+        {
+          "name": "inset",
+          "value": "0"
+        },
+        {
+          "name": "border-radius",
+          "value": "13px"
+        },
+        {
+          "name": "pointer-events",
+          "value": "none"
+        },
+        {
+          "name": "z-index",
+          "value": "0"
+        }
+      ],
+      "line_numbers": [
+        4414,
+        4640
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": "@media (max-width: 900px)",
+      "properties": [
+        {
+          "name": "padding",
+          "value": "10px 1vw 6px 1vw"
+        },
+        {
+          "name": "grid-template-columns",
+          "value": "repeat(auto-fit, minmax(100px, 1fr))"
+        },
+        {
+          "name": "gap",
+          "value": "7px"
+        },
+        {
+          "name": "padding",
+          "value": "7px 1px 4px 1px"
+        },
+        {
+          "name": "min-height",
+          "value": "48px"
+        },
+        {
+          "name": "border-radius",
+          "value": "8px"
+        },
+        {
+          "name": "font-size",
+          "value": "0.93em"
+        },
+        {
+          "name": "padding",
+          "value": "3px 7px"
+        },
+        {
+          "name": "border-radius",
+          "value": "7px"
+        }
+      ],
+      "line_numbers": [
+        4562,
+        4738
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    },
+    {
+      "selector": ".tech-level",
+      "properties": [
+        {
+          "name": "display",
+          "value": "none !important"
+        }
+      ],
+      "line_numbers": [
+        4585,
+        4688
+      ],
+      "is_removable": true,
+      "occurrences": 2
+    }
+  ]
+}
