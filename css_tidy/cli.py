@@ -144,7 +144,7 @@ def process_file(input_file: str,
 @click.option('-g', '--group', is_flag=True, help='Group CSS selectors by prefix')
 @click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
 @click.option('--validate-only', is_flag=True, help='Only validate CSS, do not format')
-@click.version_option(version="0.1.0", prog_name='css-tidy')
+@click.version_option(version="0.1.1", prog_name='css-tidy')
 def main(input_file: str, 
          output: Optional[str], 
          indent: int, 
