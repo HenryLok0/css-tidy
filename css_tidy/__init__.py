@@ -4,7 +4,7 @@ CSS Tidy - A Python tool to tidy and format CSS files.
 This module provides functionality to format, minify, and validate CSS code.
 """
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 __author__ = "Henry Lok"
 __email__ = "henry.lok@example.com"
 

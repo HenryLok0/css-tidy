@@ -27,7 +27,7 @@ def read_requirements():
 
 setup(
     name="css-tidy",
-    version="0.1.6",
+    version="0.1.7",
     author="Henry Lok",
     author_email="mail@henrylok.me",
     description="A Python tool to tidy and format CSS files",

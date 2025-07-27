@@ -20,10 +20,22 @@ class CSSRule:
     
     def get_prefix(self) -> str:
         """Get the prefix of the selector for grouping."""
+        # Handle CSS custom properties (variables)
+        if self.selector.strip() == ':root':
+            return ":root"
+        
+        # Handle at-rules
+        if self.selector.strip().startswith('@'):
+            return "@rules"
+        
+        # Handle data attributes for theme
+        if '[data-theme=' in self.selector:
+            return "[data-theme]"
+        
         # Remove pseudo-classes and pseudo-elements
         selector = re.sub(r':[^,\s]+', '', self.selector)
-        # Remove attribute selectors
-        selector = re.sub(r'\[[^\]]*\]', '', selector)
+        # Remove attribute selectors (but keep data-theme)
+        selector = re.sub(r'\[(?!data-theme)[^\]]*\]', '', selector)
         # Remove combinators
         selector = re.sub(r'[>+~]\s*', '', selector)
         
@@ -40,22 +52,112 @@ class CSSRule:
             class_name = first_part[1:]
             # Find the base class name (before any modifiers)
             # Look for common prefixes like button-, card-, nav-, etc.
-            if class_name.startswith('button'):
-                return ".button"
+            if class_name.startswith('btn') or class_name.startswith('button'):
+                return ".btn"
             elif class_name.startswith('card'):
                 return ".card"
-            elif class_name.startswith('nav'):
+            elif class_name.startswith('nav') or class_name.startswith('navbar'):
                 return ".nav"
-            elif class_name.startswith('form'):
+            elif class_name.startswith('form') or class_name.startswith('input'):
                 return ".form"
-            elif class_name.startswith('certification-timeline'):
-                return ".certification-timeline"
-            elif class_name.startswith('text-'):
+            elif class_name.startswith('modal') or class_name.startswith('dialog'):
+                return ".modal"
+            elif class_name.startswith('tab'):
+                return ".tab"
+            elif class_name.startswith('accordion'):
+                return ".accordion"
+            elif class_name.startswith('dropdown'):
+                return ".dropdown"
+            elif class_name.startswith('tooltip'):
+                return ".tooltip"
+            elif class_name.startswith('badge'):
+                return ".badge"
+            elif class_name.startswith('alert'):
+                return ".alert"
+            elif class_name.startswith('progress'):
+                return ".progress"
+            elif class_name.startswith('spinner') or class_name.startswith('loading'):
+                return ".loading"
+            elif class_name.startswith('icon'):
+                return ".icon"
+            elif class_name.startswith('avatar'):
+                return ".avatar"
+            elif class_name.startswith('sidebar'):
+                return ".sidebar"
+            elif class_name.startswith('header'):
+                return ".header"
+            elif class_name.startswith('footer'):
+                return ".footer"
+            elif class_name.startswith('main'):
+                return ".main"
+            elif class_name.startswith('container'):
+                return ".container"
+            elif class_name.startswith('grid'):
+                return ".grid"
+            elif class_name.startswith('flex'):
+                return ".flex"
+            elif class_name.startswith('text') or class_name.startswith('typography'):
                 return ".text"
-            elif class_name.startswith('mt-'):
-                return ".mt"
-            elif class_name.startswith('mb-'):
-                return ".mb"
+            elif class_name.startswith('color') or class_name.startswith('bg'):
+                return ".color"
+            elif class_name.startswith('margin') or class_name.startswith('mt') or class_name.startswith('mb') or class_name.startswith('ml') or class_name.startswith('mr'):
+                return ".margin"
+            elif class_name.startswith('padding') or class_name.startswith('pt') or class_name.startswith('pb') or class_name.startswith('pl') or class_name.startswith('pr'):
+                return ".padding"
+            elif class_name.startswith('border'):
+                return ".border"
+            elif class_name.startswith('shadow'):
+                return ".shadow"
+            elif class_name.startswith('animation') or class_name.startswith('transition'):
+                return ".animation"
+            elif class_name.startswith('certification'):
+                return ".certification"
+            elif class_name.startswith('project'):
+                return ".project"
+            elif class_name.startswith('service'):
+                return ".service"
+            elif class_name.startswith('skill'):
+                return ".skill"
+            elif class_name.startswith('timeline'):
+                return ".timeline"
+            elif class_name.startswith('testimonial'):
+                return ".testimonial"
+            elif class_name.startswith('client'):
+                return ".client"
+            elif class_name.startswith('contact'):
+                return ".contact"
+            elif class_name.startswith('social'):
+                return ".social"
+            elif class_name.startswith('about'):
+                return ".about"
+            elif class_name.startswith('tech'):
+                return ".tech"
+            elif class_name.startswith('github'):
+                return ".github"
+            elif class_name.startswith('linkedin'):
+                return ".linkedin"
+            elif class_name.startswith('theme'):
+                return ".theme"
+            elif class_name.startswith('custom'):
+                return ".custom"
+            elif class_name.startswith('enhanced'):
+                return ".enhanced"
+            elif class_name.startswith('fade'):
+                return ".fade"
+            elif class_name.startswith('hover'):
+                return ".hover"
+            elif class_name.startswith('hidden'):
+                return ".hidden"
+            elif class_name.startswith('title'):
+                return ".title"
+            elif class_name.startswith('separator'):
+                return ".separator"
+            elif class_name.startswith('overlay'):
+                return ".overlay"
+            elif class_name.startswith('back-to-top'):
+                return ".back-to-top"
+            elif class_name.startswith('bg-particles'):
+                return ".bg-particles"
             else:
                 # For other classes, use the first word
                 base_name = re.match(r'^([a-zA-Z][a-zA-Z0-9_-]*)', class_name)
@@ -64,9 +166,16 @@ class CSSRule:
         elif first_part.startswith('#'):
             # ID selector
             id_name = first_part[1:]
-            base_name = re.match(r'^([a-zA-Z][a-zA-Z0-9_-]*)', id_name)
-            if base_name:
-                return f"#{base_name.group(1)}"
+            if id_name.startswith('bg'):
+                return "#bg"
+            elif id_name.startswith('theme'):
+                return "#theme"
+            elif id_name.startswith('back'):
+                return "#back"
+            else:
+                base_name = re.match(r'^([a-zA-Z][a-zA-Z0-9_-]*)', id_name)
+                if base_name:
+                    return f"#{base_name.group(1)}"
         elif re.match(r'^[a-zA-Z]', first_part):
             # Element selector
             element_name = re.match(r'^([a-zA-Z][a-zA-Z0-9]*)', first_part)
@@ -791,23 +900,160 @@ class CSSFormatter:
     
     def _get_group_name(self, prefix: str) -> str:
         """Get a human-readable name for the group based on prefix."""
-        if prefix.startswith('.'):
+        if prefix == ":root":
+            return "css variables"
+        elif prefix == "@rules":
+            return "at-rules"
+        elif prefix == "[data-theme]":
+            return "theme variants"
+        elif prefix.startswith('.'):
             # Class selector
             class_name = prefix[1:]
-            # Convert kebab-case or snake_case to Title Case
-            name = re.sub(r'[-_]', ' ', class_name)
-            name = name.title()
-            return f"{name} Components"
+            
+            # Handle common component patterns
+            if class_name == 'btn':
+                return "buttons"
+            elif class_name == 'card':
+                return "cards"
+            elif class_name == 'nav':
+                return "navigation"
+            elif class_name == 'form':
+                return "forms"
+            elif class_name == 'modal':
+                return "modals"
+            elif class_name == 'tab':
+                return "tabs"
+            elif class_name == 'accordion':
+                return "accordions"
+            elif class_name == 'dropdown':
+                return "dropdowns"
+            elif class_name == 'tooltip':
+                return "tooltips"
+            elif class_name == 'badge':
+                return "badges"
+            elif class_name == 'alert':
+                return "alerts"
+            elif class_name == 'progress':
+                return "progress"
+            elif class_name == 'loading':
+                return "loading"
+            elif class_name == 'icon':
+                return "icons"
+            elif class_name == 'avatar':
+                return "avatars"
+            elif class_name == 'sidebar':
+                return "sidebar"
+            elif class_name == 'header':
+                return "header"
+            elif class_name == 'footer':
+                return "footer"
+            elif class_name == 'main':
+                return "main content"
+            elif class_name == 'container':
+                return "containers"
+            elif class_name == 'grid':
+                return "grid"
+            elif class_name == 'flex':
+                return "flexbox"
+            elif class_name == 'text':
+                return "typography"
+            elif class_name == 'color':
+                return "colors"
+            elif class_name == 'margin':
+                return "margins"
+            elif class_name == 'padding':
+                return "padding"
+            elif class_name == 'border':
+                return "borders"
+            elif class_name == 'shadow':
+                return "shadows"
+            elif class_name == 'animation':
+                return "animations"
+            elif class_name == 'certification':
+                return "certifications"
+            elif class_name == 'project':
+                return "projects"
+            elif class_name == 'service':
+                return "services"
+            elif class_name == 'skill':
+                return "skills"
+            elif class_name == 'timeline':
+                return "timeline"
+            elif class_name == 'testimonial':
+                return "testimonials"
+            elif class_name == 'client':
+                return "clients"
+            elif class_name == 'contact':
+                return "contact"
+            elif class_name == 'social':
+                return "social"
+            elif class_name == 'about':
+                return "about"
+            elif class_name == 'tech':
+                return "tech stack"
+            elif class_name == 'github':
+                return "github stats"
+            elif class_name == 'linkedin':
+                return "linkedin"
+            elif class_name == 'theme':
+                return "theme"
+            elif class_name == 'custom':
+                return "custom"
+            elif class_name == 'enhanced':
+                return "enhanced"
+            elif class_name == 'fade':
+                return "fade effects"
+            elif class_name == 'hover':
+                return "hover effects"
+            elif class_name == 'hidden':
+                return "hidden elements"
+            elif class_name == 'title':
+                return "titles"
+            elif class_name == 'separator':
+                return "separators"
+            elif class_name == 'overlay':
+                return "overlays"
+            elif class_name == 'back-to-top':
+                return "back to top"
+            elif class_name == 'bg-particles':
+                return "background particles"
+            else:
+                # Convert kebab-case or snake_case to Title Case
+                name = re.sub(r'[-_]', ' ', class_name)
+                name = name.title()
+                return name.lower()
         elif prefix.startswith('#'):
             # ID selector
             id_name = prefix[1:]
-            name = re.sub(r'[-_]', ' ', id_name)
-            name = name.title()
-            return f"{name} Element"
+            if id_name == 'bg':
+                return "background"
+            elif id_name == 'theme':
+                return "theme toggle"
+            elif id_name == 'back':
+                return "back to top"
+            else:
+                name = re.sub(r'[-_]', ' ', id_name)
+                name = name.title()
+                return name.lower()
         else:
             # Element selector
-            name = prefix.title()
-            return f"{name} Elements"
+            if prefix in ['html', 'body']:
+                return "base elements"
+            elif prefix in ['a', 'button', 'input', 'textarea', 'select']:
+                return "form elements"
+            elif prefix in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                return "headings"
+            elif prefix in ['p', 'span', 'div', 'section', 'article', 'main', 'header', 'footer', 'nav', 'aside']:
+                return "layout elements"
+            elif prefix in ['ul', 'ol', 'li']:
+                return "list elements"
+            elif prefix in ['table', 'tr', 'td', 'th']:
+                return "table elements"
+            elif prefix in ['img', 'video', 'audio']:
+                return "media elements"
+            else:
+                name = prefix.title()
+                return name.lower()
     
     def _format_conservative(self, css_code: str) -> str:
         """
@@ -884,9 +1130,14 @@ class CSSFormatter:
     
     def _format_grouped_conservative(self, css_code: str) -> str:
         """Format CSS with grouping, preserving all content."""
-        # Temporarily disable grouping to prevent CSS corruption
-        # TODO: Fix CSS parsing for complex files
-        return self._format_conservative(css_code)
+        # Parse CSS into rules
+        rules = self._parse_css(css_code)
+        
+        # Format rules with grouping
+        formatted_groups = self._format_grouped_rules(rules)
+        
+        # Join all formatted groups
+        return '\n'.join(formatted_groups)
 
 
 class CSSMinifier:

@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.test.json
 build/
 develop-eggs/
 dist/
@@ -132,6 +133,7 @@ dmypy.json
 *.tidy.css
 *.min.css
 examples/
+test.json
 
 # IDE and editor files
 .vscode/
