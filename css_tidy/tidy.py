@@ -510,6 +510,18 @@ class CSSValidator:
             if ':' in line and not line.endswith(';') and not line.endswith('{') and not line.endswith('}'):
                 # Make sure it's actually a property declaration, not a selector
                 if not line.startswith('@') and not line.endswith('{'):
+                    # Skip CSS custom properties (variables)
+                    if line.startswith('--'):
+                        continue
+                    # Skip lines that are part of multi-line properties
+                    if line.endswith('(') or line.startswith(')'):
+                        continue
+                    # Skip selectors (lines ending with comma)
+                    if line.endswith(','):
+                        continue
+                    # Skip lines that are clearly selectors
+                    if re.match(r'^[.#]?[a-zA-Z-]+[,\s]*$', line):
+                        continue
                     self.warnings.append(f"Missing semicolon on line {i}: {line}")
         
         # Also check for missing semicolons in multi-line CSS
@@ -521,6 +533,9 @@ class CSSValidator:
             for match in matches:
                 property_name = match.group(1)
                 property_value = match.group(2).strip()
+                # Skip CSS custom properties
+                if property_name.startswith('--'):
+                    continue
                 if property_value and not property_value.endswith(';'):
                     self.warnings.append(f"Missing semicolon before closing brace: {property_name}: {property_value}")
     
@@ -534,8 +549,20 @@ class CSSValidator:
         for i, line in enumerate(lines, 1):
             line = line.strip()
             if line and not line.startswith('/*') and not line.endswith('{') and not line.endswith('}'):
-                if ';' in line and ':' not in line:
-                    self.errors.append(f"Missing colon in property on line {i}: {line}")
+                # Skip CSS custom properties (variables)
+                if line.startswith('--'):
+                    continue
+                # Skip selectors (lines ending with comma or containing selectors)
+                if line.endswith(',') or re.match(r'^[.#]?[a-zA-Z-]+[,\s]*$', line):
+                    continue
+                # Skip lines that are part of multi-line properties
+                if line.endswith('(') or line.startswith(')'):
+                    continue
+                # Check if line has semicolon but no colon (actual property without colon)
+                if ';' in line and ':' not in line and not line.startswith('--'):
+                    # Make sure it's not a closing parenthesis or other syntax
+                    if not line.strip().startswith(')') and not line.strip().endswith('('):
+                        self.errors.append(f"Missing colon in property on line {i}: {line}")
     
     def _check_comments(self, css_code: str) -> None:
         """Check for unclosed comments."""
