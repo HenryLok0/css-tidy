@@ -27,7 +27,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Text Processing :: Markup :: CSS",
+    "Topic :: Text Processing :: Markup",
+    "Topic :: Utilities",
 ]
 requires-python = ">=3.7"
 dependencies = [
