@@ -523,48 +523,100 @@ class CSSFormatter:
         return reformat_css(compressed_css)
     
     def _parse_css(self, css_code: str) -> List[CSSRule]:
-        """Parse CSS code into a list of rules."""
+        """Parse CSS code into a list of CSSRule objects."""
         rules = []
+        lines = css_code.split('\n')
+        i = 0
         
-        # Remove comments first for parsing
-        css_code = re.sub(r'/\*.*?\*/', '', css_code, flags=re.DOTALL)
-        
-        # Handle media queries and nested rules properly
-        current_pos = 0
-        brace_count = 0
-        start_pos = 0
-        in_string = False
-        string_char = None
-        
-        for i, char in enumerate(css_code):
-            # Handle string literals to avoid counting braces inside strings
-            if char in ['"', "'"] and (i == 0 or css_code[i-1] != '\\'):
-                if not in_string:
-                    in_string = True
-                    string_char = char
-                elif string_char == char:
-                    in_string = False
-                    string_char = None
+        while i < len(lines):
+            line = lines[i].strip()
             
-            if not in_string:
-                if char == '{':
-                    if brace_count == 0:
-                        start_pos = i
-                    brace_count += 1
-                elif char == '}':
-                    brace_count -= 1
-                    if brace_count == 0:
-                        # Extract the complete rule
-                        rule_text = css_code[start_pos:i+1]
-                        selector_text = css_code[current_pos:start_pos].strip()
-                        
-                        if selector_text:
-                            # Parse the rule
-                            rule = self._parse_rule_block(selector_text, rule_text)
-                            if rule:
+            # Skip empty lines and comments
+            if not line or line.startswith('/*') or line.startswith('*/'):
+                i += 1
+                continue
+            
+            # Handle @media, @keyframes, etc.
+            if line.startswith('@'):
+                # Find the complete at-rule
+                at_rule_start = i
+                brace_count = 0
+                at_rule_lines = []
+                
+                while i < len(lines):
+                    current_line = lines[i]
+                    at_rule_lines.append(current_line)
+                    
+                    # Count braces
+                    for char in current_line:
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                # End of at-rule
+                                at_rule_text = '\n'.join(at_rule_lines)
+                                # Create a special rule for at-rules
+                                rule = CSSRule(
+                                    selector=at_rule_text,
+                                    properties=[],
+                                    line_number=at_rule_start + 1
+                                )
                                 rules.append(rule)
+                                i += 1
+                                break
+                    else:
+                        i += 1
+                        continue
+                    break
+                continue
+            
+            # Handle regular CSS rules
+            if '{' in line:
+                # Extract selector and properties
+                selector_part = line[:line.find('{')].strip()
+                properties_part = line[line.find('{')+1:].strip()
+                
+                # If properties_part doesn't end with '}', we need to find the closing brace
+                if not properties_part.endswith('}'):
+                    brace_count = 1
+                    property_lines = [properties_part]
+                    j = i + 1
+                    
+                    while j < len(lines) and brace_count > 0:
+                        current_line = lines[j]
+                        property_lines.append(current_line)
                         
-                        current_pos = i + 1
+                        for char in current_line:
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    break
+                        j += 1
+                    
+                    properties_part = '\n'.join(property_lines)
+                    i = j
+                else:
+                    i += 1
+                
+                # Remove closing brace
+                if properties_part.endswith('}'):
+                    properties_part = properties_part[:-1].strip()
+                
+                # Parse properties
+                properties = self._parse_properties(properties_part)
+                
+                # Create rule
+                rule = CSSRule(
+                    selector=selector_part,
+                    properties=properties,
+                    line_number=i
+                )
+                rules.append(rule)
+            else:
+                i += 1
         
         return rules
     
@@ -650,30 +702,20 @@ class CSSFormatter:
     
     def _format_rule(self, rule: CSSRule) -> str:
         """Format a single CSS rule."""
-        # Format selector
-        formatted_selector = rule.selector
+        # Handle at-rules (@media, @keyframes, etc.)
+        if rule.selector.startswith('@'):
+            return rule.selector
         
-        # Format properties
-        if self.sort_properties:
-            rule.properties.sort(key=lambda x: x[0])
+        # Format regular CSS rules
+        formatted_rule = []
+        formatted_rule.append(rule.selector + " {")
         
-        formatted_properties = []
         for name, value in rule.properties:
-            # Check if property needs to be wrapped
-            property_line = f"{self.indent}{name}: {value};"
-            
-            if len(property_line) > self.max_line_length:
-                # Split long properties
-                property_line = self._wrap_property(name, value)
-            
-            formatted_properties.append(property_line)
+            formatted_property = self._wrap_property(name, value)
+            formatted_rule.append(self.indent + formatted_property)
         
-        # Combine selector and properties
-        result = f"{formatted_selector} {{\n"
-        result += "\n".join(formatted_properties)
-        result += "\n}"
-        
-        return result
+        formatted_rule.append("}")
+        return '\n'.join(formatted_rule)
     
     def _wrap_property(self, name: str, value: str) -> str:
         """Wrap long CSS properties across multiple lines."""
@@ -769,59 +811,81 @@ class CSSFormatter:
     
     def _format_conservative(self, css_code: str) -> str:
         """
-        Format CSS conservatively, preserving all content but removing all empty lines inside rule blocks.
+        Format CSS conservatively, preserving all content but ensuring proper formatting.
         """
         import re
+        
+        # First, normalize line endings and remove excessive whitespace
+        css_code = re.sub(r'\r\n', '\n', css_code)
+        css_code = re.sub(r'\r', '\n', css_code)
+        
+        # Split into lines and process each line
         lines = css_code.split('\n')
         formatted_lines = []
         indent_level = 0
-        in_block = False
+        
         for line in lines:
-            stripped = line.rstrip()
-            # Detect block start
+            stripped = line.strip()
+            if not stripped:
+                continue
+            
+            # Handle comments
+            if stripped.startswith('/*') or stripped.startswith('*/'):
+                formatted_lines.append(stripped)
+                continue
+            
+            # Handle at-rules (@media, @keyframes, etc.)
+            if stripped.startswith('@'):
+                formatted_lines.append(stripped)
+                continue
+            
+            # Handle opening brace
             if '{' in stripped:
-                in_block = True
-                formatted_lines.append(self.indent * indent_level + stripped)
+                # Check if this line contains both selector and opening brace
+                if not stripped.endswith('{'):
+                    # Split selector and content
+                    parts = stripped.split('{', 1)
+                    if len(parts) == 2:
+                        selector = parts[0].strip()
+                        content = parts[1].strip()
+                        formatted_lines.append(selector + ' {')
+                        if content:
+                            formatted_lines.append(self.indent + content)
+                    else:
+                        formatted_lines.append(stripped)
+                else:
+                    # Just opening brace
+                    formatted_lines.append(stripped)
                 indent_level += 1
                 continue
-            # Detect block end
+            
+            # Handle closing brace
             if '}' in stripped:
                 indent_level = max(0, indent_level - 1)
-                in_block = False
-                formatted_lines.append(self.indent * indent_level + stripped)
-                continue
-            # Inside block - skip all empty/whitespace-only lines
-            if in_block:
-                if not stripped.strip():
-                    continue
-                formatted_lines.append(self.indent * indent_level + stripped.lstrip())
-            else:
-                if not stripped.strip():
-                    continue
                 formatted_lines.append(stripped)
+                continue
+            
+            # Handle properties (inside blocks)
+            if indent_level > 0:
+                # This is a property line, ensure proper indentation
+                formatted_lines.append(self.indent + stripped)
+            else:
+                # This is outside any block
+                formatted_lines.append(stripped)
+        
         # Join all lines
         result = '\n'.join(formatted_lines)
-        # Remove any empty lines (even多個)在 { ... } 內部
-        def remove_empty_in_blocks(css):
-            def repl(match):
-                block = match.group(1)
-                # 移除所有空行
-                block = re.sub(r'(^|\n)[ \t]*\n+', '\n', block)
-                # 移除開頭空行
-                block = re.sub(r'^\n+', '', block)
-                # 移除結尾空行
-                block = re.sub(r'\n+$', '', block)
-                return '{\n' + block + '\n}'
-            return re.sub(r'\{([\s\S]*?)\}', repl, css)
-        result = remove_empty_in_blocks(result)
-        # 移除檔案開頭結尾空行
+        
+        # Clean up any remaining formatting issues
+        result = re.sub(r'\n{3,}', '\n\n', result)  # Remove excessive empty lines
         result = result.strip() + '\n'
+        
         return result
     
     def _format_grouped_conservative(self, css_code: str) -> str:
         """Format CSS with grouping, preserving all content."""
-        # For now, use conservative formatting without grouping
-        # to ensure no content is lost, especially for @keyframes and @media
+        # Temporarily disable grouping to prevent CSS corruption
+        # TODO: Fix CSS parsing for complex files
         return self._format_conservative(css_code)
 
 
