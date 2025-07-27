@@ -69,82 +69,62 @@ def process_file(input_file: str,
                 validator: CSSValidator,
                 verbose: bool = False,
                 should_minify: bool = False) -> bool:
-    """
-    Process a single CSS file.
-    
-    Args:
-        input_file: Input CSS file path
-        output_file: Output file path (optional)
-        formatter: CSS formatter instance
-        minifier: CSS minifier instance
-        validator: CSS validator instance
-        verbose: Enable verbose output
-        
-    Returns:
-        True if successful, False otherwise
-    """
+    """Process a single CSS file."""
     try:
-        if verbose:
-            print_info(f"Processing: {input_file}")
-        
-        # Validate CSS first
-        if not validator.validate_file(input_file):
-            errors = validator.get_errors()
-            warnings = validator.get_warnings()
-            
-            for error in errors:
-                print_error(f"{input_file}: {error}")
-            
-            for warning in warnings:
-                print_warning(f"{input_file}: {warning}")
-            
-            if errors:
-                return False
-        
         # Read input file
         with open(input_file, 'r', encoding='utf-8') as f:
-            css_code = f.read()
+            original_css = f.read()
         
-        # Count original lines and size
-        original_lines = len(css_code.split('\n'))
-        original_size = len(css_code.encode('utf-8'))
+        original_lines = len(original_css.split('\n'))
+        original_size = len(original_css.encode('utf-8'))
+        
+        if verbose:
+            print_info(f"Processing: {input_file}")
+            print_info(f"Original: {original_lines} lines, {original_size} bytes")
         
         # Process CSS
         if should_minify:
-            processed_css = minifier.minify(css_code)
+            processed_css = minifier.minify(original_css)
         else:
-            processed_css = formatter.format(css_code)
+            processed_css = formatter.format(original_css)
         
-        # Calculate final lines and size
-        final_lines = len(processed_css.split('\n'))
-        final_size = len(processed_css.encode('utf-8'))
+        # Calculate statistics
+        processed_lines = len(processed_css.split('\n'))
+        processed_size = len(processed_css.encode('utf-8'))
         
-        # Show statistics if duplicates were removed
-        if formatter.remove_duplicates:
-            lines_removed = original_lines - final_lines
-            size_removed = original_size - final_size
-            
-            line_reduction_percent = (lines_removed / original_lines) * 100 if original_lines > 0 else 0
-            size_reduction_percent = (size_removed / original_size) * 100 if original_size > 0 else 0
-            
-            print_info(f"Lines: {original_lines:,} → {final_lines:,} (saved {lines_removed:,} lines, {line_reduction_percent:.1f}%)")
-            print_info(f"Size: {original_size:,} → {final_size:,} bytes (saved {size_removed:,} bytes, {size_reduction_percent:.1f}%)")
+        # Calculate reductions
+        line_reduction = original_lines - processed_lines
+        size_reduction = original_size - processed_size
+        line_reduction_pct = (line_reduction / original_lines * 100) if original_lines > 0 else 0
+        size_reduction_pct = (size_reduction / original_size * 100) if original_size > 0 else 0
+        
+        # Show detailed statistics for -c option
+        if formatter.remove_comments and verbose:
+            print_info("=== Comment Removal Statistics ===")
+            print_info(f"Original: {original_lines} lines, {original_size} bytes")
+            print_info(f"After compression: {processed_lines} lines, {processed_size} bytes")
+            print_info(f"Lines removed: {line_reduction} ({line_reduction_pct:.1f}%)")
+            print_info(f"Size reduced: {size_reduction} bytes ({size_reduction_pct:.1f}%)")
+            print_info("=== End Statistics ===")
         
         # Determine output file
         if output_file is None:
-            if input_file.endswith('.css'):
-                output_file = input_file.replace('.css', '.tidy.css')
+            if should_minify:
+                output_file = input_file.replace('.css', '.min.css')
             else:
-                output_file = input_file + '.tidy'
+                output_file = input_file.replace('.css', '.tidy.css')
         
         # Write output file
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(processed_css)
         
+        print_success(f"✓ Processed: {input_file} → {output_file}")
+        
+        # Show final statistics
         if verbose:
-            print_success(f"Output written to: {output_file}")
-        else:
-            print_success(f"Processed: {input_file} → {output_file}")
+            print_info(f"Final: {processed_lines} lines, {processed_size} bytes")
+            if line_reduction > 0 or size_reduction > 0:
+                print_info(f"Reduction: {line_reduction} lines ({line_reduction_pct:.1f}%), {size_reduction} bytes ({size_reduction_pct:.1f}%)")
         
         return True
         
@@ -165,7 +145,7 @@ def process_file(input_file: str,
 @click.option('--duplicate-report', type=click.Path(), help='Generate JSON report of duplicate rules')
 @click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
 @click.option('--validate-only', is_flag=True, help='Only validate CSS, do not format')
-@click.version_option(version="0.1.4", prog_name='css-tidy')
+@click.version_option(version="0.1.5", prog_name='css-tidy')
 def main(input_file: str, 
          output: Optional[str], 
          indent: int, 
