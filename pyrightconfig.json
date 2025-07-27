@@ -1,0 +1,23 @@
+{
+  "include": [
+    "css_tidy",
+    "tests",
+    "demo.py",
+    "setup.py"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "dist",
+    "build",
+    "*.egg-info"
+  ],
+  "ignore": [
+    "setup.py"
+  ],
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.7",
+  "typeCheckingMode": "basic"
+} 
