@@ -1,5 +1,11 @@
 # CSS Tidy
 
+[![Code Size](https://img.shields.io/github/languages/code-size/HenryLok0/css-tidy?style=flat-square&logo=github)](https://github.com/HenryLok0/css-tidy)
+![PyPI - Version](https://img.shields.io/pypi/v/css-tidy)
+
+[![MIT License](https://img.shields.io/github/license/HenryLok0/css-tidy?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/HenryLok0/css-tidy?style=flat-square)](https://github.com/HenryLok0/css-tidy/stargazers)
+
 A Python tool to tidy and format CSS files.
 
 ## Features
@@ -47,19 +53,22 @@ css-tidy style.css --group
 ## Command Line Options
 
 ```
-Usage: css-tidy [OPTIONS] INPUT_FILE
-
-Options:
-  -o, --output TEXT          Output file path
-  -i, --indent INTEGER       Indentation size (default: 2)
-  -m, --minify              Minify CSS output
-  -s, --sort                Sort CSS properties
-  -c, --remove-comments     Remove CSS comments
-  -g, --group               Group CSS selectors by prefix
-  -v, --verbose             Enable verbose output
-  --validate-only           Only validate CSS, do not format
-  --version                 Show version and exit
-  --help                    Show this message and exit
+| Option                  | Description |
+|------------------------|-------------|
+| **[Output Control]**    |             |
+| `-o, --output TEXT`     | Output file path |
+| `-m, --minify`          | Minify CSS output |
+| **[Formatting Options]** |             |
+| `-i, --indent INTEGER`  | Indentation size (default: 2) |
+| `-s, --sort`            | Sort CSS properties |
+| **[Content Processing]** |             |
+| `-c, --remove-comments` | Remove CSS comments |
+| `-g, --group`           | Group CSS selectors by prefix |
+| **[Validation & Info]** |             |
+| `--validate-only`       | Only validate CSS, do not format |
+| `-v, --verbose`         | Enable verbose output |
+| `--version`             | Show version and exit |
+| `--help`                | Show this message and exit |
 ```
 
 ### Python API Usage

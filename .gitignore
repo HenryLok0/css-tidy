@@ -131,8 +131,7 @@ dmypy.json
 # CSS Tidy specific
 *.tidy.css
 *.min.css
-examples/*.tidy.css
-examples/*.min.css
+examples/
 
 # IDE and editor files
 .vscode/
